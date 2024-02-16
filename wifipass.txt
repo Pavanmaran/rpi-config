@@ -1,0 +1,2 @@
+SSID=Airtel_pawan
+Password=prince@143276
