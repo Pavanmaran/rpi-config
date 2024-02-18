@@ -50,7 +50,7 @@ def save_wifi_credentials(ssid, password):
         file.write(f"SSID={ssid}\nPassword={password}")
     #delay(2000)
     # Reboot the system after writing the file
-    subprocess.run(["sudo", "reboot"])
+    #subprocess.run(["sudo", "reboot"])
 
 
 @app.route('/')
