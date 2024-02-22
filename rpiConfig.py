@@ -115,6 +115,59 @@ def check_wifi_status():
     # return 1
 
 
+def disable_auto_connect(interface_name):
+    try:
+        # List available connections and find the correct connection name
+        list_result = subprocess.run(["nmcli", "-t", "-f", "NAME", "connection", "show"], capture_output=True, text=True)
+        connection_names = list_result.stdout.strip().split('\n')
+        
+        # Find the connection name that corresponds to the given interface
+        for connection_name in connection_names:
+            connection_info = subprocess.run(["nmcli", "-g", "GENERAL.DEVICES", "connection", "show", connection_name], capture_output=True, text=True)
+            if interface_name in connection_info.stdout.strip().split(':'):
+                # Disable auto-connect for the identified connection
+                subprocess.run(["sudo", "nmcli", "c", "modify", connection_name, "connection.autoconnect", "no"])
+                print(f"Auto-connect disabled for {connection_name}")
+                
+                # Kill the wpa_supplicant process
+                subprocess.run(["sudo", "pkill", "wpa_supplicant"])
+                print("wpa_supplicant process killed")
+                return
+
+        # If no matching connection is found
+        print(f"Error: No matching connection found for {interface_name}")
+    except Exception as e:
+        print(f"Error disabling auto-connect: {e}")
+
+
+
+def disconnect_and_enable_ap(interface_name):
+    try:
+        # Disconnect from the current Wi-Fi network
+        subprocess.run(["sudo", "iwconfig", interface_name, "essid", "off"])
+
+        # Disable auto-connect for the Wi-Fi interface
+        disable_auto_connect(interface_name)
+
+        # Ensure that the wpa_supplicant process is killed after disabling auto-connect
+        subprocess.run(["sudo", "pkill", "wpa_supplicant"])
+        print("wpa_supplicant process killed")
+
+        # Wait for a moment to ensure disconnection
+        time.sleep(10)
+        print("Disconnecting...")
+
+        # Disable Wi-Fi interface
+        subprocess.run(["sudo", "ifconfig", interface_name, "down"])
+        time.sleep(2)
+
+        # Enable Access Point (AP) mode
+        run_ap_setup()
+        
+        print(f"Disconnected from Wi-Fi on {interface_name} and switched to Access Point (AP) mode.")
+    except Exception as e:
+        print(f"Error: {e}")
+
 
 if __name__ == '__main__':
     status = check_wifi_status()
@@ -124,6 +177,11 @@ if __name__ == '__main__':
         print("ID password is not configured. Going into AP mode.")
         run_ap_setup()
         app.run(host='0.0.0.0', port=5000)
+    elif status == 2:
+        print("Disconnecting")
+        # Replace "wlan0" with the actual name of your Wi-Fi interface
+        disconnect_and_enable_ap("wlan0")
+        app.run(host='0.0.0.0', port=5000)		
     else:
         print("Couldn't connect with existing ID pass, change it. Going into AP mode")
         run_ap_setup()
