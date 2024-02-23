@@ -4,7 +4,15 @@ import os
 import time
 
 app = Flask(__name__)
+# Define the GPIO pins for the LEDs
+red = 17  # You can change this pin number based on your setup
+blue = 18
+green = 19
 
+# Create LED objects for each pin
+led_1 = LED(led_pin_1)
+led_2 = LED(led_pin_2)
+led_3 = LED(led_pin_3)
 
 class Finder:
     def __init__(self, server_name, password, interface_name):
@@ -70,6 +78,7 @@ def configure():
         return 'WiFi Configuration in progress...'
     else:
         return 'Invalid input. Both SSID and Password are required.'
+        networkStatus(2)
 def check_wifi_status():
     interface_name = "wlan0"  # Placeholder for the actual interface name
     file_path = '/home/pi/piconfig/wifipass.txt'
@@ -109,6 +118,7 @@ def check_wifi_status():
 
     except Exception as e:
         print(f"Error reading Wi-Fi credentials: {e}")
+        networkStatus(2)
 
     # Return 1 if ID password is not configured
     # print("Wi-Fi credentials not found in the 'wifipass.txt' file.")
@@ -136,8 +146,10 @@ def disable_auto_connect(interface_name):
 
         # If no matching connection is found
         print(f"Error: No matching connection found for {interface_name}")
+        networkStatus(2)
     except Exception as e:
         print(f"Error disabling auto-connect: {e}")
+        networkStatus(2)
 
 
 
@@ -167,12 +179,31 @@ def disconnect_and_enable_ap(interface_name):
         print(f"Disconnected from Wi-Fi on {interface_name} and switched to Access Point (AP) mode.")
     except Exception as e:
         print(f"Error: {e}")
+        networkStatus(2)
+
+def networkStatus(int eventId):
+		blue.off()
+		red.off()
+		green.off()	
+	if(eventId==0):
+		print("Network is connected. ON green led")
+		green.on()
+	elif(eventId==1):
+		print("In AP mode. ON Blue led")
+		blue.on()
+	else:
+		print("Error occured. ON led red")
+		red.on()
+ 
 
 
+def mainTask():
+	print("processing data in online mode")
 if __name__ == '__main__':
     status = check_wifi_status()
     if status == 0:
         print("Connected to WiFi")
+        networkStatus(0)     
     elif status == 1:
         print("ID password is not configured. Going into AP mode.")
         run_ap_setup()
